@@ -1,7 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 
-const base = './files';
+const baseDir = process.argv[2],
+    newDir = process.argv[3],
+    remove = (process.argv[4] == 'true');
 
 const MakeDir = (path) => {
     if (!fs.existsSync(path)) {
@@ -15,25 +17,47 @@ const CopyFile = (file, newPath) => {
             console.error(err.message);
             return;
         }
-        console.error('done');
+    });
+};
+
+const MoveFile = (file, newPath) => {
+    fs.rename(file, newPath, err => {
+        if (err) {
+            console.error(err.message);
+            return;
+        }
     });
 };
 
 const SortFiles = (base) => {
-    const files = fs.readdirSync(base);
-    MakeDir('./fonts');
-    files.forEach(item => {
-        let localBase = path.join(base, item);
-        let state = fs.statSync(localBase);
-        if (state.isDirectory()) {
-            console.log('DIR: ' + item);
-            SortFiles(localBase);
-        } else {
-            console.log('File: ' + item[0]);
-            MakeDir(`./fonts/${item[0].toUpperCase()}`);
-            CopyFile(`./${base}/${item}`, `./fonts/${item[0].toUpperCase()}/${item}`);
+    fs.readdir(base, (err, files) => {
+        if (err) {
+            console.error(err.message);
+            return;
+        }
+        MakeDir(newDir);
+        for(let file of files){
+            let localBase = path.join(base, file);
+            let state = fs.statSync(localBase);
+            if (state.isDirectory()) {
+                SortFiles(localBase);
+            } else {
+                if(remove){
+                    if(file[0]==='.'){
+                        fs.unlinkSync(`./${base}/${file}`);
+                    }else{
+                        MakeDir(`./fonts/${file[0].toUpperCase()}`);
+                        MoveFile(`./${base}/${file}`, `./fonts/${file[0].toUpperCase()}/${file}`);
+                    }
+                }else{
+                    if(file[0]!=='.'){
+                        MakeDir(`./fonts/${file[0].toUpperCase()}`);
+                        CopyFile(`./${base}/${file}`, `./fonts/${file[0].toUpperCase()}/${file}`);
+                    }
+                }
+            }
         }
     });
 }
 
-SortFiles(base);
+SortFiles(baseDir);
