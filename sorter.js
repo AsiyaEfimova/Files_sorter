@@ -1,9 +1,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const baseDir = process.argv[2],
-    newDir = process.argv[3],
-    remove = (process.argv[4] == 'true');
+const baseDir = process.argv[2] || './files';
+const newDir = process.argv[3] || './fonts';
+const statusOptions = {
+    error: 1,
+    success: 0
+};
 
 const MakeDir = (path) => {
     if (!fs.existsSync(path)) {
@@ -15,16 +18,7 @@ const CopyFile = (file, newPath) => {
     fs.link(file, newPath, err => {
         if (err) {
             console.error(err.message);
-            return;
-        }
-    });
-};
-
-const MoveFile = (file, newPath) => {
-    fs.rename(file, newPath, err => {
-        if (err) {
-            console.error(err.message);
-            return;
+            process.exit(statusOptions.error);
         }
     });
 };
@@ -36,28 +30,19 @@ const SortFiles = (base) => {
             return;
         }
         MakeDir(newDir);
-        for(let file of files){
-            let localBase = path.join(base, file);
-            let state = fs.statSync(localBase);
+        for (const file of files) {
+            const localBase = path.join(base, file);
+            const state = fs.statSync(localBase);
             if (state.isDirectory()) {
                 SortFiles(localBase);
             } else {
-                if(remove){
-                    if(file[0]==='.'){
-                        fs.unlinkSync(`./${base}/${file}`);
-                    }else{
-                        MakeDir(`./fonts/${file[0].toUpperCase()}`);
-                        MoveFile(`./${base}/${file}`, `./fonts/${file[0].toUpperCase()}/${file}`);
-                    }
-                }else{
-                    if(file[0]!=='.'){
-                        MakeDir(`./fonts/${file[0].toUpperCase()}`);
-                        CopyFile(`./${base}/${file}`, `./fonts/${file[0].toUpperCase()}/${file}`);
-                    }
+                if(file[0]!=='.'){
+                    MakeDir(`${newDir}/${file[0].toUpperCase()}`);
+                    CopyFile(`./${base}/${file}`, `${newDir}/${file[0].toUpperCase()}/${file}`);
                 }
             }
         }
     });
-}
+};
 
 SortFiles(baseDir);
