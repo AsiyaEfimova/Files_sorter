@@ -1,48 +1,32 @@
 const fs = require('fs');
 const path = require('path');
+const Watcher = require('./watcher');
+const program = require('./utils/commander');
+program.parse(process.argv);
+const del = require('del');
+const handleError = require('./helper/errorhandler');
+const Sorter = require('./utils/sortfiles');
 
-const baseDir = process.argv[2] || './files';
-const newDir = process.argv[3] || './fonts';
-const statusOptions = {
-    error: 1,
-    success: 0
-};
-
-const MakeDir = (path) => {
-    if (!fs.existsSync(path)) {
-        fs.mkdirSync(path);
+const watcher = new Watcher(() => {
+    console.log('Sorting completed');
+    if (program.delete) {
+        del(program.folder).then(() => {
+            console.log('Delete folder');
+        });
     }
-};
+});
 
-const CopyFile = (file, newPath) => {
-    fs.link(file, newPath, err => {
-        if (err) {
-            console.error(err.message);
-            process.exit(statusOptions.error);
-        }
-    });
-};
+const sorter = new Sorter({
+    directory: program.output,
+    watcher: watcher
+});
 
-const SortFiles = (base) => {
-    fs.readdir(base, (err, files) => {
-        if (err) {
-            console.error(err.message);
-            return;
-        }
-        MakeDir(newDir);
-        for (const file of files) {
-            const localBase = path.join(base, file);
-            const state = fs.statSync(localBase);
-            if (state.isDirectory()) {
-                SortFiles(localBase);
-            } else {
-                if(file[0]!=='.'){
-                    MakeDir(`${newDir}/${file[0].toUpperCase()}`);
-                    CopyFile(`./${base}/${file}`, `${newDir}/${file[0].toUpperCase()}/${file}`);
-                }
-            }
-        }
-    });
-};
-
-SortFiles(baseDir);
+if (!fs.existsSync(program.folder)) {
+    handleError(`Not found folder: ${program.folder}`);
+} else {
+    if (!fs.existsSync(program.output)) {
+        fs.mkdirSync(program.output);
+    }
+    sorter.SortFiles(program.folder);
+    watcher.started();
+}
