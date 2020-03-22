@@ -1,4 +1,4 @@
-const fs = require('fs');
+const fs = require('fs').promises;
 const path = require('path');
 const Watcher = require('./watcher');
 const program = require('./utils/commander');
@@ -21,12 +21,17 @@ const sorter = new Sorter({
     watcher: watcher
 });
 
-if (!fs.existsSync(program.folder)) {
-    handleError(`Not found folder: ${program.folder}`);
-} else {
-    if (!fs.existsSync(program.output)) {
-        fs.mkdirSync(program.output);
+(async function () {
+    console.log('start');
+    if (!fs.access(program.folder)) {
+        handleError(`Not found folder: ${program.folder}`);
+    } else {
+        if (!fs.access(program.output)) {
+            await fs.mkdir(program.output);
+        }
+        watcher.started();
+        await sorter.SortFiles(program.folder);
     }
-    sorter.SortFiles(program.folder);
-    watcher.started();
-}
+})();
+
+//node . -f ./files -o ./fonts -d
