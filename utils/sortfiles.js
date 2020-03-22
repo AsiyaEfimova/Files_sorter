@@ -1,6 +1,7 @@
 const fs = require('fs').promises;
 const path = require('path');
 const handleError = require('../helper/errorhandler');
+const isAccessible = require('../helper/accessable');
 const program = require('../utils/commander');
 
 class SortFiles {
@@ -10,7 +11,7 @@ class SortFiles {
     }
     async MakeDir(path) {
         try {
-            if (! await fs.access(path)) {
+            if (! await isAccessible(path)) {
                 await fs.mkdir(path);
             }
         } catch (err) {
@@ -30,7 +31,7 @@ class SortFiles {
             const files = await fs.readdir(base);
             for (const file of files) {
                 const localBase = path.join(base, file);
-                const state = fs.statSync(localBase);
+                const state = await fs.stat(localBase);
                 if (state.isDirectory()) {
                     await this.SortFiles(localBase);
                 } else {
